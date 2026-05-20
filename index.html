@@ -16,7 +16,9 @@
         .tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
         .board-container { padding: 16px; display: none; }
         .board-container.active { display: block; }
-        .rank-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; }
+        .rank-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
+        .category-title { font-size: 1.1rem; font-weight: 800; margin: 20px 0 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
+        .empty-state { text-align: center; padding: 20px; color: #888; background: #eee; border-radius: 8px; margin-bottom: 10px; }
         #admin-trigger { position: fixed; bottom: 20px; right: 20px; background: black; color: white; border-radius: 50%; width: 50px; height: 50px; z-index: 9999; }
         #admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: none; padding: 20px; z-index: 10000; overflow-y: auto; }
         .dynamic-input { display: none; }
@@ -25,11 +27,14 @@
 </head>
 <body>
     <div id="app">
-        <header><h1>全港校際滑板比賽2026</h1><div id="connection-status">🟢 連線成功！</div></header>
+        <header>
+            <h1>全港校際滑板比賽2026</h1>
+            <div id="connection-status">🟡 連接中...</div>
+        </header>
         <nav class="tabs">
-            <button class="tab-btn active" data-target="speed" onclick="switchTab('speed')">速度障礙</button>
-            <button class="tab-btn" data-target="ollie" onclick="switchTab('ollie')">豚跳鬥高</button>
-            <button class="tab-btn" data-target="street" onclick="switchTab('street')">街式滑板</button>
+            <button class="tab-btn active" data-target="speed" onclick="switchTab('speed')">速度</button>
+            <button class="tab-btn" data-target="ollie" onclick="switchTab('ollie')">豚跳</button>
+            <button class="tab-btn" data-target="street" onclick="switchTab('street')">街式</button>
         </nav>
         <main>
             <div id="speed" class="board-container active"></div>
@@ -45,13 +50,13 @@
                     <option value="ollie">豚跳鬥高</option>
                     <option value="street">街式滑板</option>
                 </select>
-                <input type="text" id="skater-id" placeholder="編號" required>
+                <input type="text" id="skater-id" placeholder="選手編號" required>
                 <input type="text" id="skater-name" placeholder="姓名" required>
-                <select id="round-select"><option value="第一輪">第一輪</option><option value="第二輪">第二輪</option><option value="第三輪">第三輪</option></select>
+                <select id="round-select"><option value="第一輪">第一輪</option><option value="第二輪">第二輪</option></select>
                 <div id="input-speed" class="dynamic-input active"><input type="number" step="0.01" id="score-speed" placeholder="秒數"></div>
                 <div id="input-ollie" class="dynamic-input"><input type="number" id="score-ollie" placeholder="塊數"></div>
-                <div id="input-street" class="dynamic-input"><input type="number" id="score-run" placeholder="Run 分"><input type="number" id="score-trick" placeholder="Trick 分"></div>
-                <button type="submit">提交成績</button>
+                <div id="input-street" class="dynamic-input"><input type="number" id="score-run" placeholder="Run"><input type="number" id="score-trick" placeholder="Trick"></div>
+                <button type="submit">提交</button>
             </form>
         </section>
     </div>
@@ -82,17 +87,43 @@
             document.getElementById('input-' + event).classList.add('active');
         }
 
+        // 🟢 最重要的渲染函數
+        db.ref('skate_jam_2026_scores').on('value', (snapshot) => {
+            document.getElementById('connection-status').innerText = "🟢 連線成功！";
+            const data = snapshot.val() || {};
+            
+            ['speed', 'ollie', 'street'].forEach(evt => {
+                const container = document.getElementById(evt);
+                container.innerHTML = '<h3 class="category-title">成績榜</h3>';
+                
+                if (!data[evt]) {
+                    container.innerHTML += '<div class="empty-state">暫無成績</div>';
+                    return;
+                }
+                
+                Object.values(data[evt]).forEach(player => {
+                    container.innerHTML += `
+                        <div class="rank-card">
+                            <div><strong>${player.id}</strong> ${player.name}</div>
+                            <div>成績已上傳</div>
+                        </div>
+                    `;
+                });
+            });
+        });
+
         document.getElementById('score-form').addEventListener('submit', (e) => {
             e.preventDefault();
             const event = document.getElementById('event-select').value;
             const id = document.getElementById('skater-id').value;
             const round = document.getElementById('round-select').value;
+            const name = document.getElementById('skater-name').value;
             
-            db.ref(`skate_jam_2026_scores/${event}/${id}`).once('value').then(snap => {
-                let obj = snap.val() || { id: id, name: document.getElementById('skater-name').value, scores: {} };
-                // 這裡加入你的存儲邏輯
-                alert("成績已更新！");
-            });
+            db.ref(`skate_jam_2026_scores/${event}/${id}`).update({
+                id: id,
+                name: name,
+                [round]: '已上傳' // 這裡簡化了邏輯，你可以之後再擴充細節
+            }).then(() => alert("提交成功！"));
         });
     </script>
 </body>
