@@ -1,68 +1,15 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html>
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>全港校際滑板比賽2026</title>
-    
+    <title>連線測試</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
-    <style>
-        /* 保持你原本的 CSS 樣式不變 */
-        :root { --bg-color: #f9f9f9; --text-main: #111111; --text-muted: #666666; --accent-color: #000000; --update-color: #ff3b30; --border-color: #e0e0e0; --card-bg: #ffffff; }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; }
-        #app { max-width: 480px; margin: 0 auto; min-height: 100vh; padding-bottom: 80px; }
-        header { padding: 20px 16px; text-align: center; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
-        .tabs { display: flex; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
-        .tab-btn { flex: 1; padding: 12px; border: none; background: none; font-weight: 700; color: var(--text-muted); cursor: pointer; border-bottom: 3px solid transparent; }
-        .tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
-        .board-container { padding: 16px; display: none; }
-        .board-container.active { display: block; }
-        .rank-card { display: flex; align-items: center; background: var(--card-bg); padding: 16px; margin-bottom: 12px; border-radius: 8px; border: 1px solid var(--border-color); }
-        .rank-num { font-size: 1.5rem; font-weight: 800; width: 40px; color: #d4af37; }
-        .score-detail { font-size: 0.8rem; color: #555; margin-top: 4px; background: #eee; padding: 2px 6px; border-radius: 4px; display: inline-block; }
-        #admin-trigger { position: fixed; bottom: 20px; right: 20px; background: var(--accent-color); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; z-index: 9999; }
-        #admin-panel { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 20px; display: none; z-index: 10000; max-height: 80vh; overflow-y: auto; border-top: 2px solid black; }
-        .dynamic-input { display: none; }
-        .dynamic-input.active { display: block; }
-    </style>
 </head>
 <body>
-    <div id="app">
-        <header>
-            <h1>全港校際滑板比賽2026</h1>
-            <div id="connection-status">🟡 連接中...</div>
-        </header>
-        <nav class="tabs">
-            <button class="tab-btn active" data-target="speed">速度障礙</button>
-            <button class="tab-btn" data-target="ollie">豚跳鬥高</button>
-            <button class="tab-btn" data-target="street">街式滑板</button>
-        </nav>
-        <main>
-            <div id="speed" class="board-container active"></div>
-            <div id="ollie" class="board-container"></div>
-            <div id="street" class="board-container"></div>
-        </main>
-        <button id="admin-trigger" onclick="document.getElementById('admin-panel').style.display='block'">⚙️</button>
-        <section id="admin-panel">
-            <button onclick="document.getElementById('admin-panel').style.display='none'">關閉</button>
-            <form id="score-form">
-                <select id="event-select"><option value="speed">速度</option><option value="ollie">豚跳</option><option value="street">街式</option></select>
-                <input type="text" id="skater-id" placeholder="編號" required>
-                <input type="text" id="skater-name" placeholder="姓名" required>
-                <select id="round-select"><option value="第一輪">第一輪</option><option value="第二輪">第二輪</option></select>
-                <div id="input-speed" class="dynamic-input active"><input type="number" id="score-speed" placeholder="秒數"></div>
-                <div id="input-ollie" class="dynamic-input"><input type="number" id="score-ollie" placeholder="塊數"></div>
-                <div id="input-street" class="dynamic-input"><input type="number" id="score-run" placeholder="Run"><input type="number" id="score-trick" placeholder="Trick"></div>
-                <button type="submit">提交</button>
-            </form>
-        </section>
-    </div>
+    <h1 id="status">正在初始化連線...</h1>
 
     <script>
-        // 設定 Config
         const firebaseConfig = {
           apiKey: "AIzaSyAxY9yLSVqxn90fv4d78cLLxtCjmcty-yc",
           authDomain: "skate-jam-2026-1aae7.firebaseapp.com",
@@ -73,28 +20,17 @@
           appId: "1:405275333819:web:9649701c3160f2e781c59e"
         };
 
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-
-        document.getElementById('score-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const eventType = document.getElementById('event-select').value;
-            const id = document.getElementById('skater-id').value;
-            const round = document.getElementById('round-select').value;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            const db = firebase.database();
             
-            // 關鍵修改：先取得舊數據，進行合併，再寫入
-            db.ref(`skate_jam_2026_scores/${eventType}/${id}`).once('value').then(snapshot => {
-                let skaterObj = snapshot.val() || { id: id, name: document.getElementById('skater-name').value, scores: {} };
-                
-                // 根據項目存入新分數
-                let roundData = {};
-                if(eventType === 'speed') roundData.score = document.getElementById('score-speed').value;
-                // ... (其他項目邏輯)
-                
-                skaterObj.scores[round] = roundData; // 這裡確保了舊輪次成績不會消失
-                db.ref(`skate_jam_2026_scores/${eventType}/${id}`).set(skaterObj);
+            // 強制測試連線
+            db.ref('.info/connected').on('value', function(snap) {
+                document.getElementById('status').innerText = snap.val() ? "🟢 連線成功！" : "🔴 連接中...";
             });
-        });
+        } catch(e) {
+            document.getElementById('status').innerText = "❌ 錯誤: " + e.message;
+        }
     </script>
 </body>
 </html>
