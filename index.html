@@ -1,13 +1,46 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>連線測試</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>全港校際滑板比賽2026</title>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        :root { --bg-color: #f9f9f9; --accent-color: #000000; }
+        body { font-family: sans-serif; background: var(--bg-color); }
+        #app { max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
+        header { padding: 20px; background: white; text-align: center; border-bottom: 1px solid #ddd; }
+        .tab-btn { padding: 10px; cursor: pointer; }
+        .rank-card { background: white; padding: 15px; margin: 10px; border-radius: 8px; border: 1px solid #ddd; }
+        #admin-trigger { position: fixed; bottom: 20px; right: 20px; background: black; color: white; border-radius: 50%; width: 50px; height: 50px; z-index: 9999; }
+        #admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: none; padding: 20px; z-index: 10000; overflow-y: auto; }
+        .dynamic-input { display: none; }
+        .dynamic-input.active { display: block; }
+    </style>
 </head>
 <body>
-    <h1 id="status">正在初始化連線...</h1>
+    <div id="app">
+        <header><h1>全港校際滑板比賽2026</h1><div id="connection-status">🟢 連線成功！</div></header>
+        <main>
+            <div id="speed" class="board-container"></div>
+        </main>
+        <button id="admin-trigger" onclick="document.getElementById('admin-panel').style.display='block'">⚙️</button>
+        <section id="admin-panel">
+            <button onclick="document.getElementById('admin-panel').style.display='none'">關閉</button>
+            <form id="score-form">
+                <select id="event-select"><option value="speed">速度</option><option value="ollie">豚跳</option><option value="street">街式</option></select>
+                <input type="text" id="skater-id" placeholder="編號" required>
+                <input type="text" id="skater-name" placeholder="姓名" required>
+                <select id="round-select"><option value="第一輪">第一輪</option><option value="第二輪">第二輪</option><option value="第三輪">第三輪</option></select>
+                <div id="input-speed" class="dynamic-input active"><input type="number" step="0.01" id="score-speed" placeholder="秒數"></div>
+                <div id="input-ollie" class="dynamic-input"><input type="number" id="score-ollie" placeholder="塊數"></div>
+                <div id="input-street" class="dynamic-input"><input type="number" id="score-run" placeholder="Run"><input type="number" id="score-trick" placeholder="Trick"></div>
+                <button type="submit">提交成績</button>
+            </form>
+            <button onclick="if(confirm('清空？')) db.ref('skate_jam_2026_scores').remove()">清除所有數據</button>
+        </section>
+    </div>
 
     <script>
         const firebaseConfig = {
@@ -19,18 +52,36 @@
           messagingSenderId: "405275333819",
           appId: "1:405275333819:web:9649701c3160f2e781c59e"
         };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+        const dbRef = db.ref('skate_jam_2026_scores');
 
-        try {
-            firebase.initializeApp(firebaseConfig);
-            const db = firebase.database();
+        document.getElementById('score-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            const eventType = document.getElementById('event-select').value;
+            const id = document.getElementById('skater-id').value;
+            const round = document.getElementById('round-select').value;
             
-            // 強制測試連線
-            db.ref('.info/connected').on('value', function(snap) {
-                document.getElementById('status').innerText = snap.val() ? "🟢 連線成功！" : "🔴 連接中...";
+            db.ref(`skate_jam_2026_scores/${eventType}/${id}`).once('value').then(snapshot => {
+                let obj = snapshot.val() || { id: id, name: document.getElementById('skater-name').value, category: document.getElementById('category-select').value, scores: {} };
+                
+                let roundData = {};
+                if(eventType === 'speed') roundData.score = parseFloat(document.getElementById('score-speed').value);
+                // ... 補充其他項目細節
+                
+                obj.scores[round] = roundData;
+                db.ref(`skate_jam_2026_scores/${eventType}/${id}`).set(obj).then(() => {
+                    alert("提交成功！");
+                    document.getElementById('admin-panel').style.display = "none";
+                });
             });
-        } catch(e) {
-            document.getElementById('status').innerText = "❌ 錯誤: " + e.message;
-        }
+        });
+
+        // 即時監聽更新
+        dbRef.on('value', (snapshot) => {
+            document.getElementById('status').innerText = "🟢 連線成功！";
+            // 這裡放渲染邏輯...
+        });
     </script>
 </body>
 </html>
