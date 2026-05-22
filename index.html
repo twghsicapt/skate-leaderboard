@@ -4,25 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>全港校際滑板比賽2026</title>
+    
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
     <style>
-        :root { --bg-color: #f9f9f9; --accent-color: #000000; }
-        body { font-family: sans-serif; background: var(--bg-color); }
-        #app { max-width: 480px; margin: 0 auto; padding-bottom: 80px; }
-        header { padding: 20px; background: white; text-align: center; border-bottom: 1px solid #ddd; }
-        .tabs { display: flex; background: white; border-bottom: 1px solid #ddd; }
-        .tab-btn { flex: 1; padding: 15px; border: none; background: none; font-weight: 700; color: #888; cursor: pointer; border-bottom: 3px solid transparent; }
+        :root {
+            --bg-color: #f9f9f9; --text-main: #111111; --text-muted: #666666;
+            --accent-color: #000000; --update-color: #ff3b30; --border-color: #e0e0e0;
+            --card-bg: #ffffff; --pass-color: #34c759; --fail-color: #ff3b30;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color); color: var(--text-main); line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        #app { max-width: 480px; margin: 0 auto; min-height: 100vh; position: relative; padding-bottom: 80px; }
+
+        header { padding: 20px 16px; text-align: center; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; }
+
+        #connection-status { font-size: 0.75rem; color: #d4af37; margin-top: 4px; font-weight: 600; }
+        #connection-status.online { color: #4CAF50; }
+        #connection-status.offline { color: var(--update-color); }
+
+        .tabs { display: flex; background: var(--card-bg); border-bottom: 1px solid var(--border-color); }
+        .tab-btn {
+            flex: 1; padding: 12px 4px; border: none; background: none; 
+            font-size: 0.85rem; font-weight: 700; color: var(--text-muted);
+            cursor: pointer; transition: all 0.2s; border-bottom: 3px solid transparent;
+        }
         .tab-btn.active { color: var(--accent-color); border-bottom-color: var(--accent-color); }
+
         .board-container { padding: 16px; display: none; }
         .board-container.active { display: block; }
-        .rank-card { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; border: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .category-title { font-size: 1.1rem; font-weight: 800; margin: 20px 0 10px; border-bottom: 2px solid #000; padding-bottom: 5px; }
-        .empty-state { text-align: center; padding: 20px; color: #888; background: #eee; border-radius: 8px; margin-bottom: 10px; }
-        #admin-trigger { position: fixed; bottom: 20px; right: 20px; background: black; color: white; border-radius: 50%; width: 50px; height: 50px; z-index: 9999; }
-        #admin-panel { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; display: none; padding: 20px; z-index: 10000; overflow-y: auto; }
+
+        .sub-tabs { display: flex; gap: 8px; margin-bottom: 16px; overflow-x: auto; padding-bottom: 8px; -webkit-overflow-scrolling: touch; }
+        .sub-tab-btn {
+            padding: 8px 16px; border: 1px solid var(--accent-color); background: transparent; 
+            color: var(--accent-color); border-radius: 20px; font-size: 0.85rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap; transition: all 0.2s;
+        }
+        .sub-tab-btn.active { background: var(--accent-color); color: white; }
+        .sub-tabs::-webkit-scrollbar { height: 4px; }
+        .sub-tabs::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+
+        .category-title {
+            font-size: 1.1rem; font-weight: 800; color: var(--accent-color);
+            margin: 24px 0 12px 0; padding-bottom: 8px; border-bottom: 2px solid var(--accent-color);
+        }
+        .category-title:first-child { margin-top: 0; }
+
+        .rank-card {
+            display: flex; flex-direction: column; gap: 8px; background: var(--card-bg);
+            padding: 16px; margin-bottom: 12px; border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); border: 1px solid var(--border-color);
+        }
+
+        .card-main { display: flex; justify-content: space-between; align-items: center; }
+        .skater-info { display: flex; align-items: center; }
+        .rank-num { font-size: 1.5rem; font-weight: 800; width: 40px; color: var(--text-muted); }
+        .rank-card:nth-of-type(1) .rank-num { color: #d4af37; } 
+        .rank-card:nth-of-type(2) .rank-num { color: #c0c0c0; } 
+        .rank-card:nth-of-type(3) .rank-num { color: #cd7f32; } 
+
+        .skater-id { font-size: 1.1rem; font-weight: 700; }
+        .skater-name { font-size: 0.9rem; font-weight: 400; color: var(--text-muted); margin-left: 6px; }
+        
+        .score-detail { font-size: 0.8rem; color: #555555; margin-top: 4px; font-weight: 500; background: #f2f2f2; padding: 4px 8px; border-radius: 4px; display: inline-block; line-height: 1.4; }
+        .final-score { font-size: 1.2rem; font-weight: 700; text-align: right; }
+        .pass-status { font-size: 1.1rem; font-weight: 800; color: var(--pass-color); }
+        .pass-count { font-size: 0.85rem; font-weight: 700; color: var(--text-muted); margin-bottom: 8px; background: #eee; padding: 4px 10px; border-radius: 4px; display: inline-block; }
+
+        .empty-state { text-align: center; padding: 20px 0; color: var(--text-muted); font-size: 0.9rem; background: #f0f0f0; border-radius: 8px; margin-bottom: 20px; }
+
+        #admin-trigger {
+            position: fixed; bottom: 20px; right: 20px; background: var(--accent-color); color: white;
+            border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2); cursor: pointer; display: block !important; z-index: 9999;
+        }
+
+        #admin-panel {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white;
+            display: none; padding: 24px 16px; z-index: 10000; overflow-y: auto;
+        }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .admin-header h3 { margin: 0; }
+        .header-actions { display: flex; gap: 8px; }
+        .logout-btn { background: none; border: 1px solid var(--update-color); color: var(--update-color); padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .close-btn { background: #eee; border: none; padding: 6px 12px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+        .form-group { margin-bottom: 12px; }
+        label { display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 6px; color: var(--text-muted); }
+        input, select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 1rem; background: #fff; }
+        
+        .run-group { display: flex; gap: 8px; }
+        
+        .btn-submit { width: 100%; padding: 14px; background: var(--accent-color); color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: 700; margin-top: 8px; cursor: pointer; }
+        .btn-clear { width: 100%; padding: 14px; background: transparent; color: var(--update-color); border: 1px solid var(--update-color); border-radius: 6px; font-size: 1rem; font-weight: 700; margin-top: 16px; cursor: pointer; }
         .dynamic-input { display: none; }
         .dynamic-input.active { display: block; }
+        .judge-group { background: #f4f4f4; padding: 12px; border-radius: 8px; margin-bottom: 8px; border: 1px solid #ebebeb;}
+        .judge-group label { color: var(--accent-color); font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -31,100 +118,591 @@
             <h1>全港校際滑板比賽2026</h1>
             <div id="connection-status">🟡 連接中...</div>
         </header>
+
         <nav class="tabs">
-            <button class="tab-btn active" data-target="speed" onclick="switchTab('speed')">速度</button>
-            <button class="tab-btn" data-target="ollie" onclick="switchTab('ollie')">豚跳</button>
-            <button class="tab-btn" data-target="street" onclick="switchTab('street')">街式</button>
+            <button class="tab-btn active" data-target="speed" onclick="switchTab('speed')">速度挑戰</button>
+            <button class="tab-btn" data-target="ollie" onclick="switchTab('ollie')">豚跳鬥高</button>
+            <button class="tab-btn" data-target="street" onclick="switchTab('street')">街式滑板</button>
         </nav>
+
         <main>
             <div id="speed" class="board-container active"></div>
             <div id="ollie" class="board-container"></div>
             <div id="street" class="board-container"></div>
         </main>
-        <button id="admin-trigger" onclick="document.getElementById('admin-panel').style.display='block'">⚙️</button>
+
+        <button id="admin-trigger">⚙️</button>
+
         <section id="admin-panel">
-            <button onclick="document.getElementById('admin-panel').style.display='none'">關閉後台</button>
+            <div class="admin-header">
+                <h3>大會成績登錄系統</h3>
+                <div class="header-actions">
+                    <button class="logout-btn" onclick="logoutAdmin()">登出</button>
+                    <button class="close-btn" onclick="document.getElementById('admin-panel').style.display='none'">關閉</button>
+                </div>
+            </div>
             <form id="score-form">
-                <select id="event-select" onchange="updateInputs()">
-                    <option value="speed">速度障礙</option>
-                    <option value="ollie">豚跳鬥高</option>
-                    <option value="street">街式滑板</option>
-                </select>
-                <input type="text" id="skater-id" placeholder="選手編號" required>
-                <input type="text" id="skater-name" placeholder="姓名" required>
-                <select id="round-select"><option value="第一輪">第一輪</option><option value="第二輪">第二輪</option></select>
-                <div id="input-speed" class="dynamic-input active"><input type="number" step="0.01" id="score-speed" placeholder="秒數"></div>
-                <div id="input-ollie" class="dynamic-input"><input type="number" id="score-ollie" placeholder="塊數"></div>
-                <div id="input-street" class="dynamic-input"><input type="number" id="score-run" placeholder="Run"><input type="number" id="score-trick" placeholder="Trick"></div>
-                <button type="submit">提交</button>
+                <div class="form-group">
+                    <label>選擇比賽項目</label>
+                    <select id="event-select" onchange="updateInputs()">
+                        <option value="speed">速度挑戰比賽</option>
+                        <option value="ollie">豚跳鬥高比賽</option>
+                        <option value="street">街式滑板比賽</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>選擇組別</label>
+                    <select id="category-select" required></select>
+                </div>
+
+                <div class="form-group" id="round-group">
+                    <label>比賽輪數 (共兩輪)</label>
+                    <select id="round-select">
+                        <option value="第一輪">第一輪</option>
+                        <option value="第二輪">第二輪</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>參賽者編號</label>
+                    <input type="text" id="skater-id" placeholder="例如: #001" required autocomplete="off">
+                </div>
+
+                <div class="form-group">
+                    <label>參賽者姓名</label>
+                    <input type="text" id="skater-name" placeholder="例如: 陳大文" required autocomplete="off">
+                </div>
+
+                <div id="input-speed" class="dynamic-input active">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">系統會自動選取兩個 Run 中時間最短的作為該輪成績</p>
+                    <div class="run-group">
+                        <div class="form-group" style="flex:1;">
+                            <label>Run 1 (秒)</label>
+                            <input type="number" step="0.01" id="score-speed-1" placeholder="例如: 12.50">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>Run 2 (秒)</label>
+                            <input type="number" step="0.01" id="score-speed-2" placeholder="例如: 12.00">
+                        </div>
+                    </div>
+                </div>
+
+                <div id="input-ollie" class="dynamic-input">
+                    <div class="form-group">
+                        <label>最終成功挑戰總塊數</label>
+                        <input type="number" id="score-ollie" placeholder="預計最多填 20" max="30">
+                    </div>
+                </div>
+
+                <div id="input-street" class="dynamic-input">
+                    <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px;">請輸入三位裁判之評分 (系統將自動相加總和)</p>
+                    <div class="judge-group">
+                        <label>裁判 Chun Chai (總分)</label>
+                        <input type="number" step="0.1" id="j1-total" placeholder="分數">
+                    </div>
+                    <div class="judge-group">
+                        <label>裁判 Lung Chai (總分)</label>
+                        <input type="number" step="0.1" id="j2-total" placeholder="分數">
+                    </div>
+                    <div class="judge-group">
+                        <label>裁判 Johnnie (總分)</label>
+                        <input type="number" step="0.1" id="j3-total" placeholder="分數">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submit-btn">新增成績</button>
             </form>
+            <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border-color);">
+            <button type="button" id="clear-data-btn" class="btn-clear">🗑️ 清除雲端所有成績</button>
         </section>
     </div>
 
     <script>
-        const firebaseConfig = {
+        var CONFIG = {
+            events: {
+                speed: { name: "速度挑戰比賽", unit: "秒", categories: ["小學男子組", "小學女子組"] },
+                ollie: { name: "豚跳鬥高比賽", unit: "塊", categories: ["小學男子組", "小學女子組", "中學(15歲或以下)男子組", "中學(16-18歲)男子組", "中學女子組"] },
+                street: { name: "街式滑板比賽", unit: "分", categories: ["小學男子組", "小學女子組", "中學(15歲或以下)男子組", "中學(16-18歲)男子組", "中學女子組"] }
+            }
+        };
+
+        var localDb = { speed: [], ollie: [], street: [] };
+        var activeSubTabs = { speed: '第一輪', ollie: 1, street: '第一輪' };
+
+        function switchTab(target) {
+            var btns = document.querySelectorAll('.tab-btn');
+            for(var i=0; i<btns.length; i++) { btns[i].classList.remove('active'); }
+            var containers = document.querySelectorAll('.board-container');
+            for(var j=0; j<containers.length; j++) { containers[j].classList.remove('active'); }
+            
+            document.querySelector('button[data-target="' + target + '"]').classList.add('active');
+            document.getElementById(target).classList.add('active');
+        }
+
+        function setSubTab(event, tabId) {
+            activeSubTabs[event] = tabId;
+            if(event === 'speed') renderSpeed(localDb.speed);
+            if(event === 'ollie') renderOllie(localDb.ollie);
+            if(event === 'street') renderStreet(localDb.street);
+        }
+
+        function updateInputs() {
+            var eventType = document.getElementById('event-select').value;
+            var inputs = document.querySelectorAll('.dynamic-input');
+            for(var i=0; i<inputs.length; i++) { inputs[i].classList.remove('active'); }
+            
+            document.getElementById('input-' + eventType).classList.add('active');
+            updateCategoryOptions(eventType);
+            
+            if (eventType === 'ollie') {
+                document.getElementById('round-group').style.display = 'none';
+            } else {
+                document.getElementById('round-group').style.display = 'block';
+            }
+            checkExistingRecord();
+        }
+
+        // ==========================================
+        // Firebase Config (已幫你設定好，絕對唔可以改做 import)
+        // ==========================================
+        var firebaseConfig = {
           apiKey: "AIzaSyAxY9yLSVqxn90fv4d78cLLxtCjmcty-yc",
           authDomain: "skate-jam-2026-1aae7.firebaseapp.com",
-          databaseURL: "https://skate-jam-2026-1aae7-default-rtdb.firebaseio.com/",
+          databaseURL: "https://skate-jam-2026-1aae7-default-rtdb.firebaseio.com",
           projectId: "skate-jam-2026-1aae7",
           storageBucket: "skate-jam-2026-1aae7.firebasestorage.app",
           messagingSenderId: "405275333819",
           appId: "1:405275333819:web:9649701c3160f2e781c59e"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
 
-        function switchTab(target) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.board-container').forEach(c => c.classList.remove('active'));
-            document.querySelector(`button[data-target="${target}"]`).classList.add('active');
-            document.getElementById(target).classList.add('active');
-        }
+        var statusEl = document.getElementById('connection-status');
+        var database, dbRef;
 
-        function updateInputs() {
-            const event = document.getElementById('event-select').value;
-            document.querySelectorAll('.dynamic-input').forEach(el => el.classList.remove('active'));
-            document.getElementById('input-' + event).classList.add('active');
-        }
+        try {
+            firebase.initializeApp(firebaseConfig);
+            database = firebase.database();
+            dbRef = database.ref('skate_jam_2026_scores');
 
-        // 🟢 最重要的渲染函數
-        db.ref('skate_jam_2026_scores').on('value', (snapshot) => {
-            document.getElementById('connection-status').innerText = "🟢 連線成功！";
-            const data = snapshot.val() || {};
-            
-            ['speed', 'ollie', 'street'].forEach(evt => {
-                const container = document.getElementById(evt);
-                container.innerHTML = '<h3 class="category-title">成績榜</h3>';
+            firebase.database().ref('.info/connected').on('value', function(snap) {
+                if (statusEl) {
+                    if (snap.val() === true) {
+                        statusEl.textContent = "🟢 雲端系統已連線 (即時更新中)";
+                        statusEl.className = 'online';
+                    } else {
+                        statusEl.textContent = "🔴 離線狀態 (請檢查網絡)";
+                        statusEl.className = 'offline';
+                    }
+                }
+            });
+
+            dbRef.on('value', function(snapshot) {
+                var data = snapshot.val() || {};
                 
-                if (!data[evt]) {
-                    container.innerHTML += '<div class="empty-state">暫無成績</div>';
-                    return;
+                localDb.speed = [];
+                for(var k1 in data.speed) { if(data.speed.hasOwnProperty(k1)) localDb.speed.push(data.speed[k1]); }
+                
+                localDb.ollie = [];
+                for(var k2 in data.ollie) { if(data.ollie.hasOwnProperty(k2)) localDb.ollie.push(data.ollie[k2]); }
+                
+                localDb.street = [];
+                for(var k3 in data.street) { if(data.street.hasOwnProperty(k3)) localDb.street.push(data.street[k3]); }
+
+                renderSpeed(localDb.speed);
+                renderOllie(localDb.ollie);
+                renderStreet(localDb.street);
+            });
+        } catch (error) {
+            if (statusEl) { statusEl.textContent = "🔴 連線出錯: " + error.message; statusEl.className = 'offline'; }
+        }
+
+        // ==========================================
+        // 渲染：速度挑戰
+        // ==========================================
+        function renderSpeed(speedData) {
+            var container = document.getElementById('speed');
+            container.innerHTML = '';
+            speedData = speedData || [];
+
+            var roundsObj = {};
+            for(var i=0; i<speedData.length; i++) {
+                if(speedData[i].scores) {
+                    for(var r in speedData[i].scores) {
+                        if(speedData[i].scores.hasOwnProperty(r)) roundsObj[r] = true;
+                    }
+                }
+            }
+            var roundsArr = [];
+            for(var key in roundsObj) { if(roundsObj.hasOwnProperty(key)) roundsArr.push(key); }
+            roundsArr.sort();
+            
+            if(roundsArr.length === 0) roundsArr = ['第一輪'];
+            
+            var currentRoundExists = false;
+            for(var j=0; j<roundsArr.length; j++) { if(roundsArr[j] === activeSubTabs.speed) currentRoundExists = true; }
+            if(!currentRoundExists) activeSubTabs.speed = roundsArr[0];
+
+            var currentRound = activeSubTabs.speed;
+            var html = '';
+            
+            if (roundsArr.length > 1) {
+                html += '<div class="sub-tabs">';
+                for(var k=0; k<roundsArr.length; k++) {
+                    var rName = roundsArr[k];
+                    var activeClass = (rName === currentRound) ? 'active' : '';
+                    html += '<button class="sub-tab-btn ' + activeClass + '" onclick="setSubTab(\'speed\', \'' + rName + '\')">' + rName + '</button>';
+                }
+                html += '</div>';
+            }
+
+            CONFIG.events.speed.categories.forEach(function(cat) {
+                var catData = [];
+                for(var m=0; m<speedData.length; m++) {
+                    if(speedData[m].category === cat && speedData[m].scores && speedData[m].scores[currentRound]) {
+                        catData.push(speedData[m]);
+                    }
                 }
                 
-                Object.values(data[evt]).forEach(player => {
-                    container.innerHTML += `
-                        <div class="rank-card">
-                            <div><strong>${player.id}</strong> ${player.name}</div>
-                            <div>成績已上傳</div>
-                        </div>
-                    `;
-                });
+                html += '<h3 class="category-title">' + cat + '</h3>';
+                
+                if(catData.length === 0) {
+                    html += '<div class="empty-state">尚無成績</div>';
+                } else {
+                    catData.sort(function(a,b) { return a.scores[currentRound].score - b.scores[currentRound].score; });
+                    for(var n=0; n<catData.length; n++) {
+                        var p = catData[n];
+                        var sData = p.scores[currentRound];
+                        var strR1 = (sData.run1 && sData.run1 !== 9999) ? sData.run1.toFixed(2) + '秒' : '--';
+                        var strR2 = (sData.run2 && sData.run2 !== 9999) ? sData.run2.toFixed(2) + '秒' : '--';
+
+                        html += '<div class="rank-card">' +
+                                    '<div class="card-main">' +
+                                        '<div class="skater-info">' +
+                                            '<div class="rank-num">' + (n + 1) + '</div>' +
+                                            '<div class="skater-id">' + p.id + ' <span class="skater-name">' + p.name + '</span></div>' +
+                                        '</div>' +
+                                        '<div class="final-score">' + sData.score.toFixed(2) + ' <span>秒</span></div>' +
+                                    '</div>' +
+                                    '<div class="score-detail">Run 1: ' + strR1 + ' &nbsp;|&nbsp; Run 2: ' + strR2 + '</div>' +
+                                '</div>';
+                    }
+                }
             });
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 渲染：豚跳鬥高
+        // ==========================================
+        function renderOllie(ollieData) {
+            var container = document.getElementById('ollie');
+            container.innerHTML = '';
+            ollieData = ollieData || [];
+
+            var overallMax = 0;
+            for(var i=0; i<ollieData.length; i++) {
+                var m = parseInt(ollieData[i].maxBoards) || 0;
+                if(m > overallMax) overallMax = m;
+            }
+            if(overallMax === 0) overallMax = 1;
+            if(activeSubTabs.ollie > overallMax) activeSubTabs.ollie = overallMax;
+
+            var currentBoard = activeSubTabs.ollie;
+
+            var html = '<div class="sub-tabs">';
+            for(var j=1; j<=overallMax; j++) {
+                var activeClass = (j === currentBoard) ? 'active' : '';
+                html += '<button class="sub-tab-btn ' + activeClass + '" onclick="setSubTab(\'ollie\', ' + j + ')">第 ' + j + ' 塊</button>';
+            }
+            html += '</div>';
+
+            CONFIG.events.ollie.categories.forEach(function(cat) {
+                var catData = [];
+                for(var k=0; k<ollieData.length; k++) {
+                    var maxB = parseInt(ollieData[k].maxBoards) || 0;
+                    if(ollieData[k].category === cat && maxB >= currentBoard) {
+                        catData.push(ollieData[k]);
+                    }
+                }
+                
+                html += '<h3 class="category-title">' + cat + '</h3>';
+                
+                if(catData.length === 0) {
+                    html += '<div class="empty-state">尚無成績</div>';
+                } else {
+                    html += '<div class="pass-count">共 ' + catData.length + ' 人成功跨越此高度</div>';
+                    catData.sort(function(a,b) { return (parseInt(b.maxBoards)||0) - (parseInt(a.maxBoards)||0); });
+                    
+                    for(var m=0; m<catData.length; m++) {
+                        var p = catData[m];
+                        html += '<div class="rank-card">' +
+                                    '<div class="card-main">' +
+                                        '<div class="skater-info">' +
+                                            '<div class="skater-id">' + p.id + ' <span class="skater-name">' + p.name + '</span></div>' +
+                                        '</div>' +
+                                        '<div class="pass-status">✅ 過關</div>' +
+                                    '</div>' +
+                                '</div>';
+                    }
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 渲染：街式滑板
+        // ==========================================
+        function renderStreet(streetData) {
+            var container = document.getElementById('street');
+            container.innerHTML = '';
+            streetData = streetData || [];
+
+            var roundsObj = {};
+            for(var i=0; i<streetData.length; i++) {
+                if(streetData[i].scores) {
+                    for(var r in streetData[i].scores) {
+                        if(streetData[i].scores.hasOwnProperty(r)) roundsObj[r] = true;
+                    }
+                }
+            }
+            var roundsArr = [];
+            for(var key in roundsObj) { if(roundsObj.hasOwnProperty(key)) roundsArr.push(key); }
+            roundsArr.sort();
+            
+            if(roundsArr.length === 0) roundsArr = ['第一輪'];
+            
+            var currentRoundExists = false;
+            for(var j=0; j<roundsArr.length; j++) { if(roundsArr[j] === activeSubTabs.street) currentRoundExists = true; }
+            if(!currentRoundExists) activeSubTabs.street = roundsArr[0];
+
+            var currentRound = activeSubTabs.street;
+
+            var html = '';
+            if (roundsArr.length > 1) {
+                html += '<div class="sub-tabs">';
+                for(var k=0; k<roundsArr.length; k++) {
+                    var rName = roundsArr[k];
+                    var activeClass = (rName === currentRound) ? 'active' : '';
+                    html += '<button class="sub-tab-btn ' + activeClass + '" onclick="setSubTab(\'street\', \'' + rName + '\')">' + rName + '</button>';
+                }
+                html += '</div>';
+            }
+
+            CONFIG.events.street.categories.forEach(function(cat) {
+                var catData = [];
+                for(var m=0; m<streetData.length; m++) {
+                    if(streetData[m].category === cat && streetData[m].scores && streetData[m].scores[currentRound]) {
+                        catData.push(streetData[m]);
+                    }
+                }
+                
+                html += '<h3 class="category-title">' + cat + '</h3>';
+
+                if(catData.length === 0) {
+                    html += '<div class="empty-state">尚無成績</div>';
+                } else {
+                    catData.sort(function(a,b) { return b.scores[currentRound].total - a.scores[currentRound].total; });
+
+                    for(var n=0; n<catData.length; n++) {
+                        var p = catData[n];
+                        var sData = p.scores[currentRound];
+                        var d = sData.details || {};
+                        var j1 = d.j1 !== undefined ? d.j1.toFixed(1) : '0.0';
+                        var j2 = d.j2 !== undefined ? d.j2.toFixed(1) : '0.0';
+                        var j3 = d.j3 !== undefined ? d.j3.toFixed(1) : '0.0';
+                        
+                        var detailsStr = 'Chun Chai: ' + j1 + ' &nbsp;|&nbsp; Lung Chai: ' + j2 + ' &nbsp;|&nbsp; Johnnie: ' + j3;
+
+                        html += '<div class="rank-card">' +
+                                    '<div class="card-main">' +
+                                        '<div class="skater-info">' +
+                                            '<div class="rank-num">' + (n + 1) + '</div>' +
+                                            '<div class="skater-id">' + p.id + ' <span class="skater-name">' + p.name + '</span></div>' +
+                                        '</div>' +
+                                        '<div class="final-score">' + sData.total.toFixed(1) + ' <span>分</span></div>' +
+                                    '</div>' +
+                                    '<div class="score-detail">' + detailsStr + '</div>' +
+                                '</div>';
+                    }
+                }
+            });
+            container.innerHTML = html;
+        }
+
+        // ==========================================
+        // 後台邏輯與安全驗證
+        // ==========================================
+        function updateCategoryOptions(eventType) {
+            var catSelect = document.getElementById('category-select');
+            if(!catSelect) return;
+            catSelect.innerHTML = ''; 
+            var cats = CONFIG.events[eventType].categories;
+            for(var i=0; i<cats.length; i++) {
+                var opt = document.createElement('option'); opt.value = cats[i]; opt.textContent = cats[i]; catSelect.appendChild(opt);
+            }
+        }
+
+        function checkExistingRecord() {
+            var eventType = document.getElementById('event-select').value;
+            var skaterId = document.getElementById('skater-id').value.trim();
+            var currentRound = document.getElementById('round-select').value;
+            var submitBtn = document.getElementById('submit-btn');
+            if (!skaterId) return;
+            
+            var existing = null;
+            for (var i = 0; i < localDb[eventType].length; i++) {
+                if (localDb[eventType][i].id === skaterId) { existing = localDb[eventType][i]; break; }
+            }
+            
+            if (existing) {
+                document.getElementById('skater-name').value = existing.name || '';
+                if (existing.category) document.getElementById('category-select').value = existing.category;
+                
+                if (eventType === 'ollie') {
+                    document.getElementById('score-ollie').value = existing.maxBoards || '';
+                    submitBtn.textContent = "更新成績";
+                    submitBtn.style.backgroundColor = "var(--update-color)";
+                } else if (existing.scores && existing.scores[currentRound]) {
+                    var rData = existing.scores[currentRound];
+                    if (eventType === 'speed') {
+                        document.getElementById('score-speed-1').value = (rData.run1 && rData.run1 !== 9999) ? rData.run1 : '';
+                        document.getElementById('score-speed-2').value = (rData.run2 && rData.run2 !== 9999) ? rData.run2 : '';
+                    } else if (eventType === 'street' && rData.details) {
+                        document.getElementById('j1-total').value = rData.details.j1 !== undefined ? rData.details.j1 : '';
+                        document.getElementById('j2-total').value = rData.details.j2 !== undefined ? rData.details.j2 : '';
+                        document.getElementById('j3-total').value = rData.details.j3 !== undefined ? rData.details.j3 : '';
+                    }
+                    submitBtn.textContent = "更新此輪成績";
+                    submitBtn.style.backgroundColor = "var(--update-color)";
+                } else {
+                    var numInputs = document.querySelectorAll('#admin-panel input[type="number"]');
+                    for (var k = 0; k < numInputs.length; k++) numInputs[k].value = '';
+                    submitBtn.textContent = "新增此輪成績";
+                    submitBtn.style.backgroundColor = "var(--accent-color)";
+                }
+            } else {
+                var allInputs = document.querySelectorAll('#admin-panel input[type="number"]');
+                for (var m = 0; m < allInputs.length; m++) allInputs[m].value = '';
+                submitBtn.textContent = "新增成績";
+                submitBtn.style.backgroundColor = "var(--accent-color)";
+            }
+        }
+
+        document.getElementById('skater-id').addEventListener('input', checkExistingRecord);
+        document.getElementById('round-select').addEventListener('change', checkExistingRecord);
+
+        // 登錄成績
+        document.getElementById('score-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (!database) return alert("系統未能連接雲端！");
+
+            var eventType = document.getElementById('event-select').value;
+            var skaterId = document.getElementById('skater-id').value.trim().toUpperCase();
+            var skaterName = document.getElementById('skater-name').value.trim();
+            var category = document.getElementById('category-select').value; 
+            var round = document.getElementById('round-select').value;
+
+            // 每當成功輸入，刷新10分鐘鎖定期
+            localStorage.setItem('skate_admin_expiry', new Date().getTime() + (10 * 60 * 1000));
+
+            if (eventType === 'ollie') {
+                var maxBoards = parseInt(document.getElementById('score-ollie').value) || 0;
+                database.ref('skate_jam_2026_scores/ollie/' + skaterId).set({
+                    id: skaterId, name: skaterName, category: category, maxBoards: maxBoards
+                }).then(function() {
+                    alert("✅ 豚跳成績發布成功！");
+                    resetFormAndClose();
+                });
+            } else {
+                database.ref('skate_jam_2026_scores/' + eventType + '/' + skaterId).once('value').then(function(snapshot) {
+                    var skaterObj = snapshot.val() || { id: skaterId, name: skaterName, category: category, scores: {} };
+                    skaterObj.name = skaterName;
+                    skaterObj.category = category;
+                    
+                    var roundData = {};
+                    if(eventType === 'speed') {
+                        var s1 = parseFloat(document.getElementById('score-speed-1').value);
+                        var s2 = parseFloat(document.getElementById('score-speed-2').value);
+                        if(isNaN(s1)) s1 = 9999;
+                        if(isNaN(s2)) s2 = 9999;
+                        
+                        roundData.run1 = s1;
+                        roundData.run2 = s2;
+                        roundData.score = Math.min(s1, s2);
+                        if(roundData.score === 9999) roundData.score = 0; 
+                    } else if(eventType === 'street') {
+                        var j1 = parseFloat(document.getElementById('j1-total').value) || 0;
+                        var j2 = parseFloat(document.getElementById('j2-total').value) || 0;
+                        var j3 = parseFloat(document.getElementById('j3-total').value) || 0;
+                        roundData.details = { j1: j1, j2: j2, j3: j3 };
+                        roundData.total = j1 + j2 + j3;
+                    }
+                    
+                    if(!skaterObj.scores) skaterObj.scores = {};
+                    skaterObj.scores[round] = roundData;
+                    
+                    database.ref('skate_jam_2026_scores/' + eventType + '/' + skaterId).set(skaterObj).then(function() {
+                        alert("✅ 成績發布成功！");
+                        resetFormAndClose();
+                    });
+                });
+            }
         });
 
-        document.getElementById('score-form').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const event = document.getElementById('event-select').value;
-            const id = document.getElementById('skater-id').value;
-            const round = document.getElementById('round-select').value;
-            const name = document.getElementById('skater-name').value;
-            
-            db.ref(`skate_jam_2026_scores/${event}/${id}`).update({
-                id: id,
-                name: name,
-                [round]: '已上傳' // 這裡簡化了邏輯，你可以之後再擴充細節
-            }).then(() => alert("提交成功！"));
+        function resetFormAndClose() {
+            document.getElementById('skater-id').value = '';
+            document.getElementById('skater-name').value = '';
+            var inputs = document.querySelectorAll('#admin-panel input[type="number"]');
+            for(var i=0; i<inputs.length; i++) inputs[i].value = '';
+            document.getElementById('admin-panel').style.display = "none";
+        }
+
+        // 清除所有數據
+        document.getElementById('clear-data-btn').addEventListener('click', function() {
+            if (confirm("⚠️ 警告：確定要刪除雲端所有成績嗎？此動作無法復原！")) {
+                var pwd = prompt("請輸入管理員密碼：");
+                if (pwd === "8888") {
+                    if (dbRef) { dbRef.remove().then(function() { alert("✅ 雲端成績已全部清空！"); document.getElementById('admin-panel').style.display = "none"; }); }
+                } else if (pwd !== null) { alert("❌ 密碼錯誤"); }
+            }
         });
+
+        // 10 分鐘免密碼登入邏輯
+        var triggerBtn = document.getElementById('admin-trigger');
+        if(triggerBtn) {
+            triggerBtn.onclick = function() {
+                var now = new Date().getTime();
+                var expiry = localStorage.getItem('skate_admin_expiry');
+                
+                if (expiry && now < parseInt(expiry, 10)) {
+                    // 10分鐘之內，自動登入並延長時效
+                    localStorage.setItem('skate_admin_expiry', now + (10 * 60 * 1000));
+                    document.getElementById('admin-panel').style.display = 'block';
+                    return;
+                }
+
+                var pwd = prompt("請輸入管理員密碼：");
+                if (pwd === "8888") {
+                    localStorage.setItem('skate_admin_expiry', now + (10 * 60 * 1000));
+                    document.getElementById('admin-panel').style.display = 'block';
+                } else if (pwd !== null) {
+                    alert("密碼錯誤");
+                }
+            };
+        }
+
+        // 手動登出
+        function logoutAdmin() {
+            localStorage.removeItem('skate_admin_expiry');
+            document.getElementById('admin-panel').style.display = 'none';
+            alert("✅ 已成功登出。");
+        }
+
+        // 頁面載入時初始化
+        updateCategoryOptions('speed');
+        renderSpeed([]);
+        renderOllie([]);
+        renderStreet([]);
     </script>
 </body>
 </html>
