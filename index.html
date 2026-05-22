@@ -661,7 +661,7 @@
         document.getElementById('clear-data-btn').addEventListener('click', function() {
             if (confirm("⚠️ 警告：確定要刪除雲端所有成績嗎？此動作無法復原！")) {
                 var pwd = prompt("請輸入管理員密碼：");
-                if (pwd === "8888") {
+                if (pwd === "2827") {
                     if (dbRef) { dbRef.remove().then(function() { alert("✅ 雲端成績已全部清空！"); document.getElementById('admin-panel').style.display = "none"; }); }
                 } else if (pwd !== null) { alert("❌ 密碼錯誤"); }
             }
@@ -682,7 +682,7 @@
                 }
 
                 var pwd = prompt("請輸入管理員密碼：");
-                if (pwd === "8888") {
+                if (pwd === "2827") {
                     localStorage.setItem('skate_admin_expiry', now + (10 * 60 * 1000));
                     document.getElementById('admin-panel').style.display = 'block';
                 } else if (pwd !== null) {
